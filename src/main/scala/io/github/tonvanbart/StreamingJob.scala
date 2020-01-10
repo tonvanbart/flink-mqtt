@@ -1,8 +1,10 @@
 package io.github.tonvanbart
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility
+import com.fasterxml.jackson.annotation.PropertyAccessor
 import org.apache.flink.api.common.functions.AggregateFunction
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.time.Time
@@ -56,6 +58,7 @@ class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(Str
   println(s"MqttSink: Initialize($topic,$url)")
   log.info("Initialize({},{})", topic:Any, url:Any)  // nasty - https://github.com/typesafehub/scalalogging/issues/16
   val mapper = new ObjectMapper()
+  mapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY)
   var client: MqttClient = _
 
   override def open(parameters: Configuration): Unit = {
@@ -67,9 +70,9 @@ class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(Str
 
   override def invoke(value: (String, Long), context: SinkFunction.Context[_]): Unit = {
     println(s"MqttSink: invoke($value)")
-    def payload = mapper.writeValueAsBytes(value)
+    def payload = mapper.writeValueAsBytes(new WikiEdit(value._1, value._2))
     client.publish(topic, payload, 2, false)
   }
 }
 
-class WikiEdit(author: String, delta: Long)
+class WikiEdit(var author: String, var delta: Long)
