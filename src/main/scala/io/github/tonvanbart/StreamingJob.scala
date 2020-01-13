@@ -73,6 +73,12 @@ class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(Str
     def payload = mapper.writeValueAsBytes(new WikiEdit(value._1, value._2))
     client.publish(topic, payload, 2, false)
   }
+
+  override def close(): Unit = {
+    println("MqttSink: close()")
+    client.disconnect()
+    super.close()
+  }
 }
 
 class WikiEdit(var author: String, var delta: Long)
