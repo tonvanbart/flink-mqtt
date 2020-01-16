@@ -2,21 +2,21 @@ package io.github.tonvanbart
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility
 import com.fasterxml.jackson.annotation.PropertyAccessor
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import org.apache.flink.api.common.functions.AggregateFunction
 import org.apache.flink.configuration.Configuration
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.wikiedits.{WikipediaEditEvent, WikipediaEditsSource}
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * Based on Flink Wikipedia edits example, converted to Scala.
  */
-object StreamingJob {
+object StreamingJob extends LazyLogging {
 
   def main(args: Array[String]) {
     // set up the streaming execution environment
@@ -51,12 +51,11 @@ class EditAggregator extends AggregateFunction[WikipediaEditEvent, (String, Long
 /**
  * Very basic first approach
  */
-class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(String, Long)] {
-
-  private val log: Logger = LoggerFactory.getLogger(classOf[MqttSink])
+class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(String, Long)] with StrictLogging {
 
   println(s"MqttSink: Initialize($topic,$url)")
-  log.info("Initialize({},{})", topic:Any, url:Any)  // nasty - https://github.com/typesafehub/scalalogging/issues/16
+//  logger.info("Initialize({},{})", topic:Any, url:Any)  // nasty - https://github.com/typesafehub/scalalogging/issues/16
+  logger.info(s"Initialize($topic,$url)")  // nasty - https://github.com/typesafehub/scalalogging/issues/16
   val mapper = new ObjectMapper()
   mapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY)
   var client: MqttClient = _
