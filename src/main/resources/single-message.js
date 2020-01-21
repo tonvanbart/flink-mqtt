@@ -4,7 +4,7 @@ class SingleMessage extends React.Component {
     this.state = {
       error: null,
       connected: false,
-      message: null,
+      message: "Not initialized",
       host: "broker.hivemq.com",
       port: 8000,
       reconnect: 2000
@@ -15,6 +15,7 @@ class SingleMessage extends React.Component {
     this.port = 8000;
     console.log("SingleMessage initialized");
     this.onConnect = this.onConnect.bind(this);
+    this.messageArrived = this.messageArrived.bind(this);
   }
 
   onConnect() {
@@ -33,6 +34,7 @@ class SingleMessage extends React.Component {
 
   messageArrived(msg) {
       console.log("Topic: " + msg.destinationName + ", message: " + msg.payloadString)
+      this.setState({ message: msg.payloadString })
       this.state.message = msg.payloadString;
   }
 
@@ -55,6 +57,7 @@ class SingleMessage extends React.Component {
     return (
       <div>
       <span id="host">{this.state.host}:{this.state.port}</span>
+      &nbsp;
       <span id="message">{this.state.message}</span>
       </div>
     );
