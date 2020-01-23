@@ -16,6 +16,7 @@ class SingleMessage extends React.Component {
     console.log("SingleMessage initialized");
     this.onConnect = this.onConnect.bind(this);
     this.messageArrived = this.messageArrived.bind(this);
+    this.onFailure = this.onFailure.bind(this);
   }
 
   onConnect() {
@@ -35,7 +36,6 @@ class SingleMessage extends React.Component {
   messageArrived(msg) {
       console.log("Topic: " + msg.destinationName + ", message: " + msg.payloadString)
       this.setState({ message: msg.payloadString })
-      this.state.message = msg.payloadString;
   }
 
   componentDidMount() {
