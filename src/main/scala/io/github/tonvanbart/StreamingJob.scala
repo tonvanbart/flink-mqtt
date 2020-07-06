@@ -1,38 +1,22 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.github.tonvanbart
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility
+import com.fasterxml.jackson.annotation.PropertyAccessor
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import org.apache.flink.api.common.functions.AggregateFunction
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.wikiedits.{WikipediaEditEvent, WikipediaEditsSource}
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * Based on Flink Wikipedia edits example, converted to Scala.
  */
-object StreamingJob {
+object StreamingJob extends LazyLogging {
 
   def main(args: Array[String]) {
     // set up the streaming execution environment
@@ -67,13 +51,13 @@ class EditAggregator extends AggregateFunction[WikipediaEditEvent, (String, Long
 /**
  * Very basic first approach
  */
-class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(String, Long)] {
-
-  private val log: Logger = LoggerFactory.getLogger(classOf[MqttSink])
+class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(String, Long)] with StrictLogging {
 
   println(s"MqttSink: Initialize($topic,$url)")
-  log.info("Initialize({},{})", topic:Any, url:Any)  // nasty - https://github.com/typesafehub/scalalogging/issues/16
+//  logger.info("Initialize({},{})", topic:Any, url:Any)  // nasty - https://github.com/typesafehub/scalalogging/issues/16
+  logger.info(s"Initialize($topic,$url)")  // nasty - https://github.com/typesafehub/scalalogging/issues/16
   val mapper = new ObjectMapper()
+  mapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY)
   var client: MqttClient = _
 
   override def open(parameters: Configuration): Unit = {
@@ -85,9 +69,15 @@ class MqttSink(val topic: String, val url: String) extends RichSinkFunction[(Str
 
   override def invoke(value: (String, Long), context: SinkFunction.Context[_]): Unit = {
     println(s"MqttSink: invoke($value)")
-    def payload = mapper.writeValueAsBytes(value)
+    def payload = mapper.writeValueAsBytes(new WikiEdit(value._1, value._2))
     client.publish(topic, payload, 2, false)
+  }
+
+  override def close(): Unit = {
+    println("MqttSink: close()")
+    client.disconnect()
+    super.close()
   }
 }
 
-class WikiEdit(author: String, delta: Long)
+class WikiEdit(var author: String, var delta: Long)
